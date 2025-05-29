@@ -1,6 +1,7 @@
 import json
 
 from channels.generic.websocket import WebsocketConsumer
+from asgiref.sync import async_to_sync
 
 class ChatConsumer(WebsocketConsumer):
 
@@ -9,8 +10,9 @@ class ChatConsumer(WebsocketConsumer):
 
    
    
-    def disconnect(self):
+    def disconnect(self,close_code):
         pass
+        
 
     def receive(self,text_data):
         text_data_json = json.loads(text_data)
