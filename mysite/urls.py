@@ -1,4 +1,5 @@
 from django.urls import path, include
+from chat import views
 """
 URL configuration for mysite project.
 
@@ -19,7 +20,7 @@ from django.contrib import admin
 from django.urls import path
 
 urlpatterns = [
-    path("chat/", include("chat.urls")),
     path('admin/', admin.site.urls),
-    
+    path('login/', views.login_view, name='login'),  # expose login here
+    path('chat/', include('chat.urls')),
 ]
