@@ -21,6 +21,7 @@ from django.urls import path
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('login/', views.login_view, name='login'),  # expose login here
+    path('login/', views.login_view, name='login'),
+    path('accounts/', include('allauth.urls')), 
     path('chat/', include('chat.urls')),
 ]
