@@ -43,6 +43,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'django.contrib.sites',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
@@ -179,3 +180,11 @@ SOCIALACCOUNT_PROVIDERS = {
 
 
 SOCIALACCOUNT_LOGIN_ON_GET=True
+
+LOGIN_REDIRECT_URL = '/chat/'
+LOGOUT_REDIRECT_URL = '/'
+
+
+#used when someone logout and where u want to redirect without confirmation page
+ACCOUNT_LOGOUT_REDIRECT_URL = '/login/'
+ACCOUNT_LOGOUT_ON_GET = True 
