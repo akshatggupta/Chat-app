@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Anonymous Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        header a {
+            color: white;
+            text-decoration: none;
+            background-color: #555;
+            padding: 8px 16px;
+            border-radius: 4px;
+        }
+
+        header a:hover {
+            background-color: #777;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .status-bar {
+            padding: 15px 20px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .status-bar.disconnected {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .status-bar.connecting {
+            background-color: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .status-bar.waiting {
+            background-color: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .status-bar.connected {
+            background-color: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 400px;
+        }
+
+        .chat-log {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #fafafa;
+            border-top: 1px solid #ddd;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .message {
+            margin: 10px 0;
+            padding: 8px 12px;
+            border-radius: 15px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+
+        .message.own {
+            background-color: #007bff;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .message.partner {
+            background-color: #e9ecef;
+            color: #333;
+        }
+
+        .message.system {
+            background-color: #fff3cd;
+            color: #856404;
+            text-align: center;
+            margin: 10px auto;
+            font-style: italic;
+            max-width: 90%;
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 20px;
+            gap: 10px;
+            background-color: #f8f9fa;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .message-input:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .controls {
+            text-align: center;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-top: 1px solid #ddd;
+        }
+
+        input[type="button"] {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .start-btn {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .start-btn:hover {
+            background-color: #218838;
+        }
+
+        .leave-btn, .next-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .leave-btn:hover, .next-btn:hover {
+            background-color: #c82333;
+        }
+
+        .next-btn {
+            background-color: #007bff;
+        }
+
+        .next-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .send-btn {
+            background-color: #333;
+            color: white;
+            padding: 12px 20px;
+        }
+
+        .send-btn:hover {
+            background-color: #555;
+        }
+
+        .send-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .debug-panel {
+            margin: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .debug-panel h4 {
+            margin-top: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        .debug-log {
+            height: 120px;
+            overflow-y: auto;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                margin: 10px;
+            }
+            
+            .message-input {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Anonymous Chat</h1>
+        <a href="/">Home</a>
+    </header>
+
+    <div class="container">
+        <div id="status-bar" class="status-bar disconnected">
+            Click "Start Chat" to find a random stranger
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-log" id="chat-log">
+                <div class="message system">
+                    Welcome to Anonymous Chat! Click "Start Chat" to be matched with a random stranger.
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input">
+            <input 
+                id="chat-message-input" 
+                class="message-input" 
+                type="text" 
+                placeholder="Type your message here..." 
+                disabled
+            />
+            <input 
+                id="chat-message-submit" 
+                class="send-btn" 
+                type="button" 
+                value="Send" 
+                disabled
+            />
+        </div>
+
+        <div class="controls">
+            <input 
+                id="start-btn" 
+                class="start-btn" 
+                type="button" 
+                value="Start Chat"
+            />
+            <input 
+                id="leave-btn" 
+                class="leave-btn hidden" 
+                type="button" 
+                value="Leave Chat"
+            />
+            <input 
+                id="next-btn" 
+                class="next-btn hidden" 
+                type="button" 
+                value="Next Chat"
+            />
+        </div>
+    </div>
+
+    <div class="debug-panel">
+        <h4>Debug Information</h4>
+        <div><strong>Connection:</strong> <span id="ws-status">Not connected</span></div>
+        <div><strong>Session:</strong> <span id="session-id">None</span></div>
+        <div><strong>Room:</strong> <span id="room-id">None</span></div>
+        <div><strong>Messages:</strong> Sent <span id="msg-sent">0</span> | Received <span id="msg-received">0</span></div>
+        
+        <div class="debug-log" id="debug-log">
+            Debug messages will appear here...
+        </div>
+    </div>
+
+    <script>
+        let chatSocket = null;
+        let messagesSent = 0;
+        let messagesReceived = 0;
+        let sessionId = null;
+        let roomId = null;
+
+        // DOM elements
+        const statusBar = document.getElementById('status-bar');
+        const chatLog = document.getElementById('chat-log');
+        const messageInput = document.getElementById('chat-message-input');
+        const messageSubmit = document.getElementById('chat-message-submit');
+        const startBtn = document.getElementById('start-btn');
+        const leaveBtn = document.getElementById('leave-btn');
+        const nextBtn = document.getElementById('next-btn');
+        
+        // Debug elements
+        const wsStatus = document.getElementById('ws-status');
+        const sessionIdSpan = document.getElementById('session-id');
+        const roomIdSpan = document.getElementById('room-id');
+        const msgSentSpan = document.getElementById('msg-sent');
+        const msgReceivedSpan = document.getElementById('msg-received');
+        const debugLog = document.getElementById('debug-log');
+
+        function startChat() {
+            if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+                debugMessage('Already connected. Sending start_chat request.');
+                chatSocket.send(JSON.stringify({type: 'start_chat'}));
+                return;
+            }
+
+            const wsUrl = 'ws://' + window.location.host + '/ws/chat/';
+            
+            debugMessage('Connecting to: ' + wsUrl);
+            updateStatus('connecting', 'Connecting to server...');
+
+            chatSocket = new WebSocket(wsUrl);
+
+            chatSocket.onopen = function(event) {
+                debugMessage('WebSocket connected successfully');
+                wsStatus.textContent = 'Connected';
+                updateStatus('waiting', 'Looking for a stranger to chat with...');
+                updateButtons('waiting');
+            };
+
+            chatSocket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                debugMessage('Received: ' + JSON.stringify(data));
+                handleMessage(data);
+                messagesReceived++;
+                updateDebugInfo();
+            };
+
+            chatSocket.onclose = function(event) {
+                debugMessage('WebSocket closed: ' + event.code);
+                wsStatus.textContent = 'Disconnected';
+                updateStatus('disconnected', 'Disconnected from server');
+                updateButtons('disconnected');
+                chatSocket = null;
+            };
+
+            chatSocket.onerror = function(error) {
+                debugMessage('WebSocket error occurred');
+                updateStatus('disconnected', 'Connection error - please try again');
+                updateButtons('disconnected');
+            };
+        }
+
+        function leaveChat() {
+            if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+                debugMessage('Sending leave_chat request');
+                chatSocket.send(JSON.stringify({type: 'leave_chat'}));
+            }
+            
+            updateStatus('disconnected', 'You left the chat');
+            updateButtons('disconnected');
+            roomId = null;
+            updateDebugInfo();
+        }
+
+        function nextChat() {
+            leaveChat();
+            setTimeout(function() {
+                addMessage('Looking for a new stranger...', 'system');
+                startChat();
+            }, 500);
+        }
+
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message || !chatSocket || chatSocket.readyState !== WebSocket.OPEN) {
+                return;
+            }
+
+            debugMessage('Sending message: ' + message);
+            chatSocket.send(JSON.stringify({
+                type: 'message',
+                message: message
+            }));
+
+            addMessage(message, 'own');
+            messageInput.value = '';
+            messagesSent++;
+            updateDebugInfo();
+        }
+
+        function handleMessage(data) {
+            switch(data.type) {
+                case 'status':
+                    debugMessage('Status: ' + data.message);
+                    if (data.session_id) {
+                        sessionId = data.session_id;
+                        updateDebugInfo();
+                    }
+                    break;
+
+                case 'waiting':
+                    updateStatus('waiting', data.message || 'Looking for a stranger...');
+                    break;
+
+                case 'matched':
+                case 'match_found':
+                    updateStatus('connected', 'You\'re now connected! Start chatting!');
+                    updateButtons('connected');
+                    addMessage('You\'re now chatting with a stranger!', 'system');
+                    if (data.room_id) {
+                        roomId = data.room_id;
+                        updateDebugInfo();
+                    }
+                    break;
+
+                case 'message':
+                    addMessage(data.message, 'partner');
+                    break;
+
+                case 'partner_left':
+                    updateStatus('disconnected', 'Stranger has disconnected');
+                    updateButtons('disconnected');
+                    addMessage('Stranger has disconnected. Chat ended.', 'system');
+                    roomId = null;
+                    updateDebugInfo();
+                    break;
+
+                case 'error':
+                    addMessage('Error: ' + data.message, 'system');
+                    break;
+
+                default:
+                    debugMessage('Unknown message type: ' + data.type);
+            }
+        }
+
+        function addMessage(message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + type;
+            messageDiv.textContent = message;
+            
+            chatLog.appendChild(messageDiv);
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        function updateStatus(status, message) {
+            statusBar.className = 'status-bar ' + status;
+            statusBar.textContent = message;
+        }
+
+        function updateButtons(state) {
+            switch(state) {
+                case 'disconnected':
+                    startBtn.classList.remove('hidden');
+                    leaveBtn.classList.add('hidden');
+                    nextBtn.classList.add('hidden');
+                    messageInput.disabled = true;
+                    messageSubmit.disabled = true;
+                    break;
+
+                case 'waiting':
+                    startBtn.classList.add('hidden');
+                    leaveBtn.classList.remove('hidden');
+                    nextBtn.classList.add('hidden');
+                    messageInput.disabled = true;
+                    messageSubmit.disabled = true;
+                    break;
+
+                case 'connected':
+                    startBtn.classList.add('hidden');
+                    leaveBtn.classList.remove('hidden');
+                    nextBtn.classList.remove('hidden');
+                    messageInput.disabled = false;
+                    messageSubmit.disabled = false;
+                    messageInput.focus();
+                    break;
+            }
+        }
+
+        function debugMessage(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            debugLog.innerHTML += '[' + timestamp + '] ' + message + '<br>';
+            debugLog.scrollTop = debugLog.scrollHeight;
+            console.log('[WebSocket] ' + message);
+        }
+
+        function updateDebugInfo() {
+            sessionIdSpan.textContent = sessionId || 'None';
+            roomIdSpan.textContent = roomId || 'None';
+            msgSentSpan.textContent = messagesSent;
+            msgReceivedSpan.textContent = messagesReceived;
+        }
+
+        // Event listeners
+        startBtn.onclick = startChat;
+        leaveBtn.onclick = leaveChat;
+        nextBtn.onclick = nextChat;
+        messageSubmit.onclick = sendMessage;
+
+        messageInput.onkeyup = function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        };
+
+        // Initialize
+        updateButtons('disconnected');
+        updateDebugInfo();
+        messageInput.focus();
+    </script>
+</body>
+</html>

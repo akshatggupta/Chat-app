@@ -10,15 +10,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.session_id = None
         self.room_id = None
         
-        # accesing the websocket session from scope
-        if 'session' in self.scope:
-            session = self.scope['session']
-            if hasattr(session, 'session_key') and session.session_key:
+        # accessing the websocket session from scope
+        if "session" in self.scope:
+            session = self.scope["session"]
+
+            if getattr(session, "session_key", None):
                 self.session_id = session.session_key
             else:
-                session.create()
+                await sync_to_async(session.create)()
                 self.session_id = session.session_key
-
 
         # once the session is created assign the name of the chat grp
         if self.session_id:
@@ -30,7 +30,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             
             await self.accept()
             ''' creating the fake request to reuse and handle the function present in matchmaker as they return HTTP request which
-                cannot be handle by the websocket
+                cannot be handled directly by the websocket
             '''
             # Call start_chat from matchmaker.py
             fake_request = type('obj', (object,), {
@@ -76,7 +76,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     {
                         "type": "chat_message",
                         "message": message,
-                        "sender": self.session_id  # FIXED: Track sender
+                        "sender": self.session_id  # Track sender
                     }
                 )
         except json.JSONDecodeError:
@@ -84,7 +84,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "error": "Invalid message format"
             }))
 
-    
     async def match_found(self, event):
         """Called when user gets matched with someone"""
         self.room_id = event['room_id']
